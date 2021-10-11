@@ -1,0 +1,12 @@
+Algo for file sorting and organizing:
+
+1st Phase:
+1. Dictionary of the file and its path => {key: file name, value: list of file path}
+2. Dictionary for unique files => {key: file modified time, value: dictionary of file and its path}
+3. Create report of the list of files
+
+2nd Phase:
+1. Copy/Move the file to the output folder.
+2. Create report of the list of files.
+
+
