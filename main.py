@@ -1,4 +1,4 @@
-import configparser, os, re, datetime, time, xlsxwriter, xlrd
+import configparser, os, re, datetime, time, xlsxwriter
 import logging
 from pathlib import Path
 from os.path import exists, join
@@ -47,17 +47,24 @@ def listFiles(path, fileSearchPattern):
 def makeReport(outputPath, fileInfo):
     workbook_name = join(outputPath, f'File_organization_{time.time_ns()}.xlsx')
     workbook = xlsxwriter.Workbook(workbook_name)
-    header_1 = workbook.add_format({'bold': True})
-    header_2 = workbook.add_format({'border' : 1,'bg_color' : '#C6EFCE'})
+    header = workbook.add_format({'border' : 1,'bg_color' : '#C6EFCE', 'bold': True})
     border = workbook.add_format({'border': 1})
 
     #Create Sheet for unchanged Files.
     if fileInfo:
         fileSheet = workbook.add_worksheet('List of files')
-        fileSheet.set_column('A:A',8)
-        fileSheet.set_column('B:B',50)
+        fileSheet.set_column('A:A',5)
+        fileSheet.set_column('B:B',30)
+        fileSheet.set_column('C:C',20)
+        fileSheet.set_column('D:D',50)
+        fileSheet.set_column('E:E',50)
+        fileSheet.set_column('F:F',18)
 
-        fileSheet.write('B1','Filename:', header_1)
+        fileSheet.write('B1','Creation time', header)
+        fileSheet.write('C1','Filename', header)
+        fileSheet.write('D1','Source', header)
+        fileSheet.write('E1','Destination', header)
+        fileSheet.write('F1','Remarks', header)
         fileSheetRow = 1
         fileSheetCol = 0
   
@@ -67,14 +74,13 @@ def makeReport(outputPath, fileInfo):
                 fileList = fileData[filename]
                 for filePath in fileList:
                     timeStamp= datetime.datetime.strptime(fileModification, '%c')
+                    newFilename = str(timeStamp.strftime('%Y-%m-%d_%H.%M.%S'))
                     year= str(timeStamp.year)
                     month= str(timeStamp.strftime('%b'))
-                    print(f'\nFilename:{filename}; Path={filePath}; Modification={fileModification}; Year={year}; Month={month}')
                     fileSheet.write_number(fileSheetRow, fileSheetCol, fileSheetRow, border)
                     fileSheet.write_string(fileSheetRow, fileSheetCol+1, fileModification, border)
                     fileSheet.write_string(fileSheetRow, fileSheetCol+2, filename, border)
                     fileSheet.write_string(fileSheetRow, fileSheetCol+3, filePath, border)
-                    fileSheetRow +=1
                     
                     yearDir= os.path.join(outputPath, year)
                     monthDir= os.path.join(yearDir, month)
@@ -85,7 +91,22 @@ def makeReport(outputPath, fileInfo):
                     if not os.path.exists(monthDir):
                         os.mkdir(monthDir)
 
-                    copyfile(filePath, os.path.join(monthDir, filename))
+                    destPath = os.path.join(monthDir, newFilename + Path(filename).suffix)
+                    fileSheet.write_string(fileSheetRow, fileSheetCol+4, destPath, border)
+                    remarks= "Done"
+                    
+                    print(f'\nFilename:{filename}; Source={filePath}; Destination={destPath}; Modification={fileModification}; Year={year}; Month={month}')
+                    
+                    if not os.path.exists(destPath):
+                        try:
+                            copyfile(filePath, destPath)
+                        except Exception as err:
+                            remarks= "Error: Can't copy"
+                    else:
+                        remarks= "Already exist!"
+                    
+                    fileSheet.write_string(fileSheetRow, fileSheetCol+5, remarks, border)
+                    fileSheetRow +=1
     workbook.close()
 
 if __name__ == "__main__":
